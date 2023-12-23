@@ -13,22 +13,26 @@ Description: This code Uses the same efficient algorithm from our simulation,
     The resulting visualization provides insights into the occupancy of different grid cells.
 """
 
+# Import necessary libraries
 import pygame
 import math
 from rplidar import RPLidar
 import numpy as np
+import keyboard
 
+# Initialize Pygame
 pygame.init()
 
+# Set the port name for the RPLIDAR device
 PORT_NAME = 'COM4'
 
 # User inputs
-occupancy_threshold = 0.2
-coef = 100
-num_cells = 8
-num_slices = 12
-real_max_radius = 8000
-screen_max_radius = 400
+occupancy_threshold = 0.2   # Threshold for occupancy matrix
+coef = 100  # Coefficient for occupancy matrix calculation
+num_cells = 8   # Number of cells in the matrix
+num_slices = 12  # Number of slices in the matrix
+real_max_radius = 8000  # Maximum radius in real-world units
+screen_max_radius = 400  # Maximum radius for screen visualization
 
 # User preferences
 WIDTH, HEIGHT = 1920, 1080
@@ -39,28 +43,31 @@ POINT_RADIUS = 3
 GRID_COLOR = (200, 200, 200)
 red = (255, 0, 0, 0)
 
-
+# Set up the Pygame window
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('LIDAR Visualization')
-
 clock = pygame.time.Clock()
 
+# Calculate angle step and angles for each slice
 angle_step = 360 / num_slices
 angles = np.deg2rad(np.arange(0, 360, angle_step))
 
+# Calculate distances for screen visualization and real-world distances
 circle_distance = screen_max_radius / num_cells
-
 real_circle_distance = real_max_radius / num_cells
 
+# Define the size of the occupancy matrix
 matrix_size = (num_cells, num_slices)
 
 
+# Define a function to convert polar coordinates to Cartesian coordinates
 def polar_to_cartesian(r, theta):
     x = int(WIDTH / 2 + r * math.cos(math.radians(theta)))
     y = int(HEIGHT / 2 - r * math.sin(math.radians(theta)))
     return int(x), int(y)
 
 
+# Calculate areas for each cell and store in a list
 area_list = []
 for slice_idx in range(num_slices):
     for cell_idx in range(1, num_cells + 1):
@@ -68,6 +75,7 @@ for slice_idx in range(num_slices):
         area = ((cell_idx * circle_distance) ** 2 * np.pi - ((cell_idx - 1) * circle_distance) ** 2 * np.pi) / num_slices
         area_list.append(area)
 
+# Sort areas for highlighting cells
 sorted_areas = sorted(area_list)
 
 # Create a list of (area, cell_index) tuples
@@ -89,6 +97,7 @@ for cell_index, (cell_radius, slice_index) in enumerate(sorted_cells, start=1):
     end_radius = cell_radius
     cell_areas.append((sorted_areas[cell_index - 1], cell_index, cell_radius, start_angle, end_angle, start_radius, end_radius))
 
+# Create a list for areas of each cell
 list1 = []
 for cell_idx in range(1, num_cells + 1):
     # Calculate the area for the current cell
@@ -98,6 +107,7 @@ for cell_idx in range(1, num_cells + 1):
 print(list1)
 
 
+# Function to draw the polar grid
 def draw_polar_grid():
     font = pygame.font.Font(None, 36)
     for i in range(1, num_cells + 1):
@@ -121,21 +131,25 @@ def draw_polar_grid():
                                             HEIGHT / 2 - screen_max_radius * 1.2 * math.sin(angle)))
         screen.blit(label, label_rect)
 
+    # Draw a red point to indicate the face of the LIDAR(opposite of the cord)
     dot_x = int(WIDTH / 2 + screen_max_radius * math.cos(math.radians(0)))
     dot_y = int(HEIGHT / 2 - screen_max_radius * math.sin(math.radians(0)))
     pygame.draw.circle(screen, (255, 0, 0, 0), (dot_x, dot_y), 5)
 
 
 def run():
+    # Initialize the RPLIDAR device
     lidar = RPLidar(PORT_NAME)
     try:
         running = True
+        # Continuously read LIDAR scans
         for scan in lidar.iter_scans():
             last_points = []  # Store points for rendering
             matrix = np.zeros(matrix_size)
 
             screen.fill(BACKGROUND_COLOR)
 
+            # Process each data point in the scan
             for (_, angle, distance) in scan:
                 dis = int(distance // real_circle_distance)
                 ang = int((360-angle) // angle_step) % num_slices
@@ -154,9 +168,7 @@ def run():
 
             print(occupancy_matrix.astype(int))
 
-            for x, y in last_points:
-                screen.set_at((x, y), POINT_COLOR)
-
+            # Highlight cells based on the occupancy matrix
             for dis in range(num_cells):
                 for ang in range(num_slices):
                     if occupancy_matrix[dis, ang]:
@@ -172,9 +184,18 @@ def run():
 
                         pygame.draw.polygon(screen, red, polygon_points)
 
-            draw_polar_grid()
+            # Draw lidar data on the screen
+            for x, y in last_points:
+                screen.set_at((x, y), POINT_COLOR)
 
+            draw_polar_grid()
             pygame.display.update()
+
+            # Check for 'q' key press to stop the program
+            if keyboard.is_pressed('q'):
+                print("Stopping the program...")
+                running = False
+                break
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -186,9 +207,11 @@ def run():
     except KeyboardInterrupt:
         pass
 
-    lidar.stop()
-    lidar.disconnect()
-    pygame.quit()
+    finally:
+        # Stop the lidar motor and disconnect the RPLIDAR device
+        lidar.stop_motor()
+        lidar.stop()
+        lidar.disconnect()
 
 
 if __name__ == '__main__':
