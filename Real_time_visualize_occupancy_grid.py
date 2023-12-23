@@ -99,21 +99,31 @@ print(list1)
 
 
 def draw_polar_grid():
+    font = pygame.font.Font(None, 36)
     for i in range(1, num_cells + 1):
         radius = i * circle_distance
         pygame.draw.circle(screen, GRID_COLOR, (WIDTH / 2, HEIGHT / 2), int(radius), 1)
+
+        # Add real distance labels
+        label = font.render(f"{i * real_circle_distance/1000:.0f}m", True, GRID_COLOR)
+        label_rect = label.get_rect(center=(WIDTH / 2, HEIGHT / 2 - radius))
+        screen.blit(label, label_rect)
 
     for angle in angles:
         x1 = WIDTH / 2 + screen_max_radius * math.cos(angle)
         y1 = HEIGHT / 2 + screen_max_radius * math.sin(angle)
         pygame.draw.line(screen, GRID_COLOR, (WIDTH / 2, HEIGHT / 2), (x1, y1), 1)
 
+        # Add angle labels
+        angle_degrees = math.degrees(angle)
+        label = font.render(f"{angle_degrees:.0f}°", True, GRID_COLOR)
+        label_rect = label.get_rect(center=(WIDTH / 2 + screen_max_radius * 1.2 * math.cos(angle),
+                                            HEIGHT / 2 - screen_max_radius * 1.2 * math.sin(angle)))
+        screen.blit(label, label_rect)
+
     dot_x = int(WIDTH / 2 + screen_max_radius * math.cos(math.radians(0)))
     dot_y = int(HEIGHT / 2 - screen_max_radius * math.sin(math.radians(0)))
     pygame.draw.circle(screen, (255, 0, 0, 0), (dot_x, dot_y), 5)
-    dot_x = int(WIDTH / 2 + screen_max_radius * math.cos(math.radians(180)))
-    dot_y = int(HEIGHT / 2 - screen_max_radius * math.sin(math.radians(180)))
-    pygame.draw.circle(screen, POINT_COLOR, (dot_x, dot_y), 5)
 
 
 def run():
@@ -125,7 +135,6 @@ def run():
             matrix = np.zeros(matrix_size)
 
             screen.fill(BACKGROUND_COLOR)
-            draw_polar_grid()
 
             for (_, angle, distance) in scan:
                 dis = int(distance // real_circle_distance)
@@ -162,6 +171,8 @@ def run():
                         polygon_points += [polar_to_cartesian(outer_radius, angle) for angle in reversed(phy)]
 
                         pygame.draw.polygon(screen, red, polygon_points)
+
+            draw_polar_grid()
 
             pygame.display.update()
 
