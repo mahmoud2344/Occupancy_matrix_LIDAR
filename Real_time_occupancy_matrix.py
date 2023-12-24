@@ -1,6 +1,6 @@
 """
 Author: AHMED Mahmoud
-Date: 15/12/2023
+Date: 24/12/2023
 Institution: UHA ENSISA M2 EEA
 
 Professor: Rodolfo Orjuela
@@ -11,7 +11,6 @@ Description: This code Uses the same efficient algorithm from our simulation,
     allowing to obtain the occupancy matrix in real time without visualization in which is better for real time application.
     The program Uses RPLIDAR data, create the occupancy matrix using specified density threshold.
 """
-
 # Import necessary libraries
 from rplidar import RPLidar
 import numpy as np
@@ -22,11 +21,12 @@ PORT_NAME = 'COM4'
 
 # User inputs
 occupancy_threshold = 0.2  # Threshold for occupancy matrix
-coef = 100  # Coefficient for occupancy matrix calculation
+coef = 1000  # Coefficient for occupancy matrix calculation
 num_cells = 8  # Number of cells in the matrix
 num_slices = 12  # Number of slices in the matrix
 real_max_radius = 8000  # Maximum radius in real-world units
-screen_max_radius = 400  # Maximum radius for screen visualization
+screen_max_radius = 350  # Maximum radius for screen visualization
+motor_speed = 500   # Lidar rotation speed
 
 # Calculate angle step and angles for each slice
 angle_step = 360 / num_slices
@@ -54,31 +54,34 @@ def run():
     # Initialize the RPLIDAR device
     lidar = RPLidar(PORT_NAME)
     try:
+        lidar.motor_speed = motor_speed
         running = True
         # Continuously read LIDAR scans
-        for scan in lidar.iter_scans():
+        for scan in lidar.iter_scans(scan_type='express'):
             matrix = np.zeros(matrix_size)
 
             # Process each data point in the scan
             for (_, angle, distance) in scan:
                 dis = int(distance // real_circle_distance)
                 ang = int((360 - angle) // angle_step) % num_slices
-                if 0 <= dis < num_cells:
+                if 0 < dis <= num_cells:
                     matrix[dis, ang] += 1
 
-            # Display the occupancy matrix as integers
-            print(f"occupancy:{matrix.astype(int)}")
+            # Display the number of points matrix
+            print(f"number of points:")
+            print(f"{matrix.astype(int)}")
 
             # Convert the occupancy matrix to a binary matrix based on the threshold
             matrix = np.array(matrix)
             occupancy_matrix = np.zeros_like(matrix, dtype=float)
             occupancy_matrix = matrix * coef / np.array(list1)[:num_cells, None] > occupancy_threshold
 
-            # Display the binary occupancy matrix as integers
+            # Display the binary occupancy matrix
+            print(f"occupancy_matrix:")
             print(occupancy_matrix.astype(int))
 
-            # Check for 'q' key press to stop the program
-            if keyboard.is_pressed('q'):
+            # Check for 'esc' key press to stop the program
+            if keyboard.is_pressed('esc'):
                 print("Stopping the program...")
                 running = False
                 break
