@@ -28,18 +28,18 @@ PORT_NAME = 'COM4'
 
 # User inputs
 occupancy_threshold = 0.2   # Threshold for occupancy matrix
-coef = 100  # Coefficient for occupancy matrix calculation
+coef = 1000  # Coefficient for occupancy matrix calculation
 num_cells = 8   # Number of cells in the matrix
 num_slices = 12  # Number of slices in the matrix
 real_max_radius = 8000  # Maximum radius in real-world units
-screen_max_radius = 400  # Maximum radius for screen visualization
+screen_max_radius = 350  # Maximum radius for screen visualization
+motor_speed = 500   # Lidar rotation speed
 
 # User preferences
 WIDTH, HEIGHT = 1920, 1080
 FULLSCREEN = pygame.FULLSCREEN
 BACKGROUND_COLOR = (10, 10, 10)
 POINT_COLOR = (0, 255, 0)
-POINT_RADIUS = 3
 GRID_COLOR = (200, 200, 200)
 red = (255, 0, 0, 0)
 
@@ -134,16 +134,17 @@ def draw_polar_grid():
     # Draw a red point to indicate the face of the LIDAR(opposite of the cord)
     dot_x = int(WIDTH / 2 + screen_max_radius * math.cos(math.radians(0)))
     dot_y = int(HEIGHT / 2 - screen_max_radius * math.sin(math.radians(0)))
-    pygame.draw.circle(screen, (255, 0, 0, 0), (dot_x, dot_y), 5)
+    pygame.draw.circle(screen, red, (dot_x, dot_y), 5)
 
 
 def run():
     # Initialize the RPLIDAR device
     lidar = RPLidar(PORT_NAME)
     try:
+        lidar.motor_speed = motor_speed
         running = True
         # Continuously read LIDAR scans
-        for scan in lidar.iter_scans():
+        for scan in lidar.iter_scans(scan_type='express'):
             last_points = []  # Store points for rendering
             matrix = np.zeros(matrix_size)
 
@@ -153,19 +154,23 @@ def run():
             for (_, angle, distance) in scan:
                 dis = int(distance // real_circle_distance)
                 ang = int((360-angle) // angle_step) % num_slices
-                if 0 <= dis < num_cells:
+                if 0 < dis <= num_cells:
                     matrix[dis, ang] += 1
                 x = int(WIDTH / 2 + (distance / real_max_radius) * screen_max_radius * math.cos(math.radians(360 - angle)))
                 y = int(HEIGHT / 2 - (distance / real_max_radius) * screen_max_radius * math.sin(math.radians(360 - angle)))
                 last_points.append((x, y))
-            print(f"occupancy:")
+
+            # Display the number of points matrix
+            print(f"number of points:")
             print(f"{matrix.astype(int)}")
 
+            # Convert the occupancy matrix to a binary matrix based on the threshold
             matrix = np.array(matrix)
-
             occupancy_matrix = np.zeros_like(matrix, dtype=float)
             occupancy_matrix = matrix * coef / np.array(list1)[:num_cells, None] > occupancy_threshold
 
+            # Display the binary occupancy matrix
+            print(f"occupancy_matrix:")
             print(occupancy_matrix.astype(int))
 
             # Highlight cells based on the occupancy matrix
@@ -191,8 +196,8 @@ def run():
             draw_polar_grid()
             pygame.display.update()
 
-            # Check for 'q' key press to stop the program
-            if keyboard.is_pressed('q'):
+            # Check for 'esc' key press to stop the program
+            if keyboard.is_pressed('esc'):
                 print("Stopping the program...")
                 running = False
                 break
