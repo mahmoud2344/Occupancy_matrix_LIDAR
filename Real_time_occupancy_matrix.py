@@ -1,6 +1,6 @@
 """
 Author: AHMED Mahmoud
-Date: 15/12/2023
+Date: 24/12/2023
 Institution: UHA ENSISA M2 EEA
 
 Professor: Rodolfo Orjuela
@@ -21,7 +21,7 @@ PORT_NAME = 'COM4'
 
 # User inputs
 occupancy_threshold = 0.2  # Threshold for occupancy matrix
-coef = 1000  # Coefficient for occupancy matrix calculation
+coef = 500  # Coefficient for occupancy matrix calculation
 num_cells = 8  # Number of cells in the matrix
 num_slices = 12  # Number of slices in the matrix
 real_max_radius = 8000  # Maximum radius in real-world units
