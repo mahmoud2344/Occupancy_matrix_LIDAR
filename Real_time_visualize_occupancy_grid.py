@@ -1,6 +1,6 @@
 """
 Author: AHMED Mahmoud
-Date: 15/12/2023
+Date: 24/12/2023
 Institution: UHA ENSISA M2 EEA
 
 Professor: Rodolfo Orjuela
@@ -12,7 +12,6 @@ Description: This code Uses the same efficient algorithm from our simulation,
     The program Uses RPLIDAR data, and highlights cells based on a specified density threshold.
     The resulting visualization provides insights into the occupancy of different grid cells.
 """
-
 # Import necessary libraries
 import pygame
 import math
@@ -28,11 +27,11 @@ PORT_NAME = 'COM4'
 
 # User inputs
 occupancy_threshold = 0.2   # Threshold for occupancy matrix
-coef = 1000  # Coefficient for occupancy matrix calculation
+coef = 500  # Coefficient for occupancy matrix calculation
 num_cells = 8   # Number of cells in the matrix
 num_slices = 12  # Number of slices in the matrix
 real_max_radius = 8000  # Maximum radius in real-world units
-screen_max_radius = 350  # Maximum radius for screen visualization
+screen_max_radius = 400  # Maximum radius for screen visualization
 motor_speed = 500   # Lidar rotation speed
 
 # User preferences
