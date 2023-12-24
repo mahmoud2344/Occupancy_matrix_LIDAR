@@ -1,6 +1,6 @@
 """
 Author: AHMED Mahmoud
-Date: 24/12/2023
+Date: 15/12/2023
 Institution: UHA ENSISA M2 EEA
 
 Professor: Rodolfo Orjuela
@@ -64,7 +64,7 @@ def run():
             for (_, angle, distance) in scan:
                 dis = int(distance // real_circle_distance)
                 ang = int((360 - angle) // angle_step) % num_slices
-                if 0 < dis <= num_cells:
+                if 0 <= dis <= num_cells:
                     matrix[dis, ang] += 1
 
             # Display the number of points matrix
