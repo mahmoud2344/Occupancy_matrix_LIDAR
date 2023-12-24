@@ -1,6 +1,6 @@
 """
 Author: AHMED Mahmoud
-Date: 24/12/2023
+Date: 15/12/2023
 Institution: UHA ENSISA M2 EEA
 
 Professor: Rodolfo Orjuela
@@ -154,7 +154,7 @@ def run():
             for (_, angle, distance) in scan:
                 dis = int(distance // real_circle_distance)
                 ang = int((360-angle) // angle_step) % num_slices
-                if 0 < dis <= num_cells:
+                if 0 <= dis <= num_cells:
                     matrix[dis, ang] += 1
                 x = int(WIDTH / 2 + (distance / real_max_radius) * screen_max_radius * math.cos(math.radians(360 - angle)))
                 y = int(HEIGHT / 2 - (distance / real_max_radius) * screen_max_radius * math.sin(math.radians(360 - angle)))
