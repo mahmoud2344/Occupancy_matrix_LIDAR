@@ -9,8 +9,8 @@ Project: Detection of navigable areas with LIDAR for an autonomous vehicle
 
 Description: This code Uses the same efficient algorithm from our simulation,
     allowing for the visualization of an occupancy matrix in real time.
-    The program Uses RPLIDAR data, and highlights cells based on a specified density threshold.
-    The resulting visualization provides insights into the occupancy of different grid cells.
+    The program Uses RPLIDAR data, highlights cells based on a specified density threshold, and finds a free path using our minimum distance threshold.
+    The resulting visualization provides insights into the occupancy of different grid cells and available paths.
 """
 # Import necessary libraries
 import pygame
@@ -28,12 +28,12 @@ PORT_NAME = 'COM4'
 # User inputs
 occupancy_threshold = 0.2   # Threshold for occupancy matrix
 coefficient = 500  # Coefficient for occupancy matrix calculation
-num_cells = 9   # Number of cells in the matrix
-num_slices = 20  # Number of slices in the matrix
+num_cells = 16   # Number of cells in the matrix
+num_slices = 36  # Number of slices in the matrix
 real_max_radius = 8000  # Maximum radius in real-world units
 screen_max_radius = 400  # Maximum radius for screen visualization
 motor_speed = 700   # Lidar rotation speed
-min_distance = 400  # Minimum distance to find a free path
+min_distance = 4000  # Minimum distance to find a free path
 
 # User preferences
 WIDTH, HEIGHT = 1920, 1080
@@ -60,6 +60,8 @@ real_circle_distance = real_max_radius / num_cells
 matrix_size = (num_cells, num_slices)
 
 dis_threshold = int(min_distance / real_circle_distance)
+
+print(dis_threshold)
 
 
 # Define a function to convert polar coordinates to Cartesian coordinates
