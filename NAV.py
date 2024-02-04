@@ -1,6 +1,6 @@
 """
 Author: AHMED Mahmoud
-Date: 24/12/2023
+Date: 14/01/2024
 Institution: UHA ENSISA M2 EEA
 
 Professor: Rodolfo Orjuela
@@ -9,8 +9,9 @@ Project: Detection of navigable areas with LIDAR for an autonomous vehicle
 
 Description: This code Uses the same efficient algorithm from our simulation,
     allowing for the visualization of an occupancy matrix in real time.
-    The program Uses RPLIDAR data, highlights cells based on a specified density threshold, and finds a free path using our minimum distance threshold.
-    The resulting visualization provides insights into the occupancy of different grid cells and available paths.
+    The program Uses RPLIDAR data, and highlights cells based on a specified density threshold.
+    The resulting visualization provides insights into the occupancy of different grid cells.
+    And possible paths for our Vehicle.
 """
 # Import necessary libraries
 import pygame
@@ -36,12 +37,13 @@ motor_speed = 700   # Lidar rotation speed
 min_distance = 4000  # Minimum distance to find a free path
 
 # User preferences
-WIDTH, HEIGHT = 1920, 1080
+WIDTH, HEIGHT = 1800, 960
 FULLSCREEN = pygame.FULLSCREEN
 BACKGROUND_COLOR = (10, 10, 10)
 POINT_COLOR = (0, 255, 0)
 GRID_COLOR = (200, 200, 200)
 red = (255, 0, 0, 0)
+mam = 0
 
 # Set up the Pygame window
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -59,16 +61,10 @@ real_circle_distance = real_max_radius / num_cells
 # Define the size of the occupancy matrix
 matrix_size = (num_cells, num_slices)
 
+# Calculate number of cells that should be free based on the user input
 dis_threshold = int(min_distance / real_circle_distance)
 
 print(dis_threshold)
-
-
-# Define a function to convert polar coordinates to Cartesian coordinates
-def polar_to_cartesian(r, theta):
-    x = int(WIDTH / 2 + r * math.cos(math.radians(theta)))
-    y = int(HEIGHT / 2 - r * math.sin(math.radians(theta)))
-    return int(x), int(y)
 
 
 # Calculate areas for each cell and store in a list
@@ -111,8 +107,29 @@ for cell_idx in range(1, num_cells + 1):
 print(list1)
 
 
+# Define a function to convert polar coordinates to Cartesian coordinates
+def polar_to_cartesian(r, theta):
+    """
+    Convert polar coordinates to Cartesian coordinates.
+
+    :param r: The radial distance from the origin point.
+    :param theta: The angle measured in degrees.
+    :return: The Cartesian coordinates (x, y).
+
+    """
+    theta = math.radians(theta)
+    x = int(WIDTH / 2 + r * math.cos(theta))
+    y = int(HEIGHT / 2 - r * math.sin(theta))
+    return int(x), int(y)
+
+
 # Function to draw the polar grid
 def draw_polar_grid():
+    """
+    Draws a polar grid on the screen with circles representing distances and lines representing angles.
+
+    :return: None
+    """
     font = pygame.font.Font(None, 36)
     for i in range(1, num_cells + 1):
         radius = i * circle_distance
@@ -141,7 +158,54 @@ def draw_polar_grid():
     pygame.draw.circle(screen, red, (dot_x, dot_y), 5)
 
 
+def Highlight_cells(occupancy_matrix, color):
+    """
+    :param occupancy_matrix: The matrix representing the occupancy of each cell.
+    :param color: The color to highlight the cells with.
+    :return: None
+
+    This method takes an occupancy matrix and a color as parameters and highlights the cells in a given screen using the pygame library.
+    The occupancy matrix represents the occupancy of each cell, and the color parameter determines the color of the highlighting.
+    The method iterates over each cell in the occupancy matrix and checks if the cell is occupied. If so, it calculates the necessary parameters
+    for drawing a polygon to represent the cell on the screen. The polygon is then drawn using the pygame.draw.polygon() method.
+    """
+    for dis in range(num_cells):
+        for ang in range(num_slices):
+            if occupancy_matrix[dis, ang]:
+                cell_index = dis * num_slices + ang + 1
+                area, cell_index, center, start_angle, end_angle, start_radius, end_radius = cell_areas[cell_index - 1]
+
+                phy = np.linspace(start_angle, end_angle, 100)
+                inner_radius = start_radius
+                outer_radius = end_radius
+
+                polygon_points = [polar_to_cartesian(inner_radius, angle) for angle in phy]
+                polygon_points += [polar_to_cartesian(outer_radius, angle) for angle in reversed(phy)]
+
+                pygame.draw.polygon(screen, color, polygon_points)
+
+
 def check_consecutive_zeros_and_draw(matrix):
+    """
+    Check for consecutive zeros in a matrix and draw a free path matrix.
+
+    :param matrix: The input matrix
+    :return: The free path matrix with consecutive zeros marked as 1
+
+    Example usage:
+        import numpy as np
+
+        matrix = np.array([[1, 0, 0, 0],
+                           [1, 0, 0, 1],
+                           [1, 1, 0, 1]])
+        free_path_matrix = check_consecutive_zeros_and_draw(matrix)
+        print(free_path_matrix)
+
+    Output:
+        [[0 1 1 0]
+         [0 1 1 0]
+         [0 1 1 0]]
+    """
     num_rows, num_cols = matrix.shape
     free_path_matrix = np.zeros((num_rows, num_cols), dtype=int)
 
@@ -165,14 +229,19 @@ def check_consecutive_zeros_and_draw(matrix):
 
 
 def run():
+    """
+    Runs the Lidar scanning process and displays the results on the screen.
+
+    :return: None
+    """
     # Initialize the RPLIDAR device
     lidar = RPLidar(PORT_NAME)
     try:
         lidar.motor_speed = motor_speed
         running = True
         # Continuously read LIDAR scans
-        for scan in lidar.iter_scans(scan_type='express'):
-            last_points = []  # Store points for rendering
+        for scan in lidar.iter_scans(scan_type='express', max_buf_meas=10000):
+            last_points = []
             matrix = np.zeros(matrix_size)
 
             screen.fill(BACKGROUND_COLOR)
@@ -188,7 +257,6 @@ def run():
                 last_points.append((x, y))
 
             # Convert the occupancy matrix to a binary matrix based on the threshold
-            matrix = np.array(matrix)
             occupancy_matrix = np.zeros_like(matrix, dtype=float)
             occupancy_matrix = matrix * coefficient / np.array(list1)[:num_cells, None] > occupancy_threshold
 
@@ -199,22 +267,7 @@ def run():
             print("Free Path Matrix:")
             print(free_path_matrix)
 
-            # Highlight cells based on the occupancy matrix
-            for dis in range(num_cells):
-                for ang in range(num_slices):
-                    if occupancy_matrix[dis, ang]:
-                        cell_index = dis * num_slices + ang + 1
-                        area, cell_index, center, start_angle, end_angle, start_radius, end_radius = cell_areas[cell_index - 1]
-
-                        phy = np.linspace(start_angle, end_angle, 100)
-                        inner_radius = start_radius
-                        outer_radius = end_radius
-
-                        polygon_points = [polar_to_cartesian(inner_radius, angle) for angle in phy]
-                        polygon_points += [polar_to_cartesian(outer_radius, angle) for angle in reversed(phy)]
-
-                        pygame.draw.polygon(screen, red, polygon_points)
-
+            Highlight_cells(occupancy_matrix, red)
             # Draw lidar data on the screen
             for x, y in last_points:
                 screen.set_at((x, y), POINT_COLOR)
@@ -225,8 +278,21 @@ def run():
             # Check for 'esc' key press to stop the program
             if keyboard.is_pressed('esc'):
                 print("Stopping the program...")
-                running = False
                 break
+            # Add a condition to handle more user actions
+            elif keyboard.is_pressed('p'):
+                print("Pausing the scanning process...")
+                last_points = []
+                lidar.stop_motor()
+                lidar.stop()
+                lidar.disconnect()
+                while True:
+                    if keyboard.is_pressed('c'):
+                        print("Resuming the scanning process...")
+                        lidar.connect()
+                        lidar.start_motor()
+                        lidar.start()
+                        break
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
