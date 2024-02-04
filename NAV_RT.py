@@ -9,7 +9,7 @@ Project: Detection of navigable areas with LIDAR for an autonomous vehicle
 
 Description: This code Uses the same efficient algorithm from our simulation,
     allowing to obtain the occupancy matrix in real time without visualization in which is better for real time application.
-    The program Uses RPLIDAR data, create the occupancy matrix using specified density threshold.
+    The program Uses RPLIDAR data, create the occupancy matrix using specified density threshold. and uses it after to find straight-line paths.
 """
 # Import necessary libraries
 from rplidar import RPLidar
